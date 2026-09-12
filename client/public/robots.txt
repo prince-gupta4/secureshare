@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dev/
+Disallow: /_next/
+Disallow: /uploads/
+
+Sitemap: https://securestore.local/sitemap.xml
