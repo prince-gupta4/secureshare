@@ -48,6 +48,7 @@ app.use('/api/dev', devRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/', (_req, res) => res.json({ status: 'Looks Good' }));
 
 // ── Scheduled Cleanup ──────────────────────────────────────
 // Run every 15 minutes: delete expired files from local disk, Cloudinary, and DB.

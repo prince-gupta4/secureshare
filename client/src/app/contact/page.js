@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-const API = '/api';
+import api from '@/utils/api';
 
 export default function ContactPage() {
     const [form, setForm] = useState({ name: '', email: '', message: '' });
@@ -15,20 +15,11 @@ export default function ContactPage() {
         setSending(true);
         setError('');
         try {
-            const res = await fetch(`${API}/contacts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setError(data.error || 'Failed to send message. Please try again.');
-                return;
-            }
+            await api.post('/contacts', form);
             setSent(true);
             setForm({ name: '', email: '', message: '' });
-        } catch {
-            setError('Network error. Please try again later.');
+        } catch (err) {
+            setError(err.response?.data?.error || 'Network error. Please try again later.');
         } finally {
             setSending(false);
         }

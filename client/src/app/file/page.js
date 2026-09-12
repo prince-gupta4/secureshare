@@ -1,29 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-const API = '/api';
+import api from '@/utils/api';
 
 function trackView(type) {
     try {
-        fetch(`${API}/analytics/view`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type }),
-            keepalive: true,
-        });
+        api.post('/analytics/view', { type });
     } catch { /* fire-and-forget */ }
 }
 
 function trackDownload(fileSize) {
     try {
-        fetch(`${API}/analytics/download`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileSize: fileSize || 0 }),
-            keepalive: true,
-        });
+        api.post('/analytics/download', { fileSize: fileSize || 0 });
     } catch { /* fire-and-forget */ }
 }
 
@@ -34,7 +24,20 @@ function formatSize(bytes) {
 }
 
 export default function FileDownloadPage() {
-    const { slug } = useParams();
+    return (
+        <Suspense fallback={
+            <div className="download-page">
+                <p className="text-muted">Loading file route...</p>
+            </div>
+        }>
+            <FileDownloadContent />
+        </Suspense>
+    );
+}
+
+function FileDownloadContent() {
+    const searchParams = useSearchParams();
+    const slug = searchParams.get('id');
     const [fileMeta, setFileMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
@@ -42,13 +45,8 @@ export default function FileDownloadPage() {
     useEffect(() => {
         const fetchFile = async () => {
             try {
-                const res = await fetch(`${API}/files/${slug}`);
-                if (!res.ok) {
-                    setNotFound(true);
-                    return;
-                }
-                const data = await res.json();
-                setFileMeta(data);
+                const res = await api.get(`/files/${slug}`);
+                setFileMeta(res.data);
                 trackView('file');
             } catch {
                 setNotFound(true);
@@ -61,7 +59,8 @@ export default function FileDownloadPage() {
 
     const handleDownload = () => {
         trackDownload(fileMeta.fileSize);
-        window.open(`${API}/files/${slug}/download`, '_blank');
+        const BASE_API = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000/api';
+        window.open(`${BASE_API}/files/${slug}/download`, '_blank');
     };
 
     if (loading) {

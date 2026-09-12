@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDev } from '@/components/DevAuth';
 
-const API = '/api';
+import api from '@/utils/api';
 
 export default function DevLoginPage() {
     const [password, setPassword] = useState('');
@@ -18,20 +18,11 @@ export default function DevLoginPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await fetch(`${API}/dev/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setError(data.error || 'Invalid password');
-                return;
-            }
-            devLogin(data.token);
+            const res = await api.post('/dev/login', { password });
+            devLogin(res.data.token);
             router.push('/dev/log');
-        } catch {
-            setError('Network error. Please try again.');
+        } catch (err) {
+            setError(err.response?.data?.error || 'Network error. Please try again.');
         } finally {
             setLoading(false);
         }

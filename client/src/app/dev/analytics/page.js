@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useDev } from '@/components/DevAuth';
 import { devAuthHeaders } from '@/components/DevAuth';
 
-const API = '/api';
+import api from '@/utils/api';
 
 function formatBytes(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -21,15 +21,10 @@ export default function DevAnalyticsPage() {
 
     const fetchAnalytics = async () => {
         try {
-            const res = await fetch(`${API}/dev/analytics?days=${days}`, {
+            const res = await api.get(`/dev/analytics?days=${days}`, {
                 headers: devAuthHeaders(devToken),
             });
-            if (!res.ok) {
-                setError('Failed to load analytics (unauthorized or server error)');
-                return;
-            }
-            const json = await res.json();
-            setData(json);
+            setData(res.data);
         } catch (err) {
             setError('Network error: ' + err.message);
         } finally {

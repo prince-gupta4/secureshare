@@ -1,26 +1,34 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, useCallback, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { nanoid } from 'nanoid';
 import { useTheme } from '@/components/ThemeProvider';
 
-const API = '/api';
+import api from '@/utils/api';
 
 function trackView(type) {
     try {
-        fetch(`${API}/analytics/view`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type }),
-            keepalive: true,
-        });
+        api.post('/analytics/view', { type });
     } catch { /* fire-and-forget */ }
 }
 
 export default function NotePage() {
-    const { slug } = useParams();
+    return (
+        <Suspense fallback={
+            <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                <p className="text-muted">Loading note instance...</p>
+            </div>
+        }>
+            <NoteContent />
+        </Suspense>
+    );
+}
+
+function NoteContent() {
+    const searchParams = useSearchParams();
+    const slug = searchParams.get('id');
     const router = useRouter();
     const { theme } = useTheme();
     const editorRef = useRef(null);
@@ -30,6 +38,7 @@ export default function NotePage() {
 
     const [content, setContent] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null); // Added error state
     const [saving, setSaving] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [unsaved, setUnsaved] = useState(false);
@@ -59,8 +68,10 @@ export default function NotePage() {
     useEffect(() => {
         const fetchNote = async () => {
             try {
-                const res = await fetch(`${API}/notes/${slug}`);
-                const data = await res.json();
+                // Reset error state on new fetch
+                setError(null);
+                const res = await api.get(`/notes/${slug}`);
+                const data = res.data;
                 setContent(data.content || '');
                 lastSavedContent.current = data.content || '';
                 setIsLocked(data.isPasswordProtected);
@@ -68,6 +79,8 @@ export default function NotePage() {
                 trackView('note');
             } catch (err) {
                 console.error('Failed to fetch note:', err);
+                // Extract error message from API response or use a default message
+                setError(err.response?.data?.error || 'Failed to load the note. It may not exist or the server is down.');
             } finally {
                 setIsLoading(false);
             }
@@ -77,7 +90,7 @@ export default function NotePage() {
 
     // ── Initialize CodeMirror ─────────────────
     useEffect(() => {
-        if (isLoading || (isLocked && !isUnlocked)) return;
+        if (isLoading || error || (isLocked && !isUnlocked)) return;
 
         let destroyed = false;
 
@@ -156,7 +169,7 @@ export default function NotePage() {
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoading, isLocked, isUnlocked, language, theme]);
+    }, [isLoading, error, isLocked, isUnlocked, language, theme]);
 
     // ── Manual Save ───────────────────────────
     const handleSave = useCallback(async () => {
@@ -166,11 +179,7 @@ export default function NotePage() {
             const currentContent = viewRef.current
                 ? viewRef.current.state.doc.toString()
                 : content;
-            await fetch(`${API}/notes/${slug}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: currentContent, language }),
-            });
+            await api.put(`/notes/${slug}`, { content: currentContent, language });
             lastSavedContent.current = currentContent;
             isDirty.current = false;
             setUnsaved(false);
@@ -188,8 +197,8 @@ export default function NotePage() {
         if (refreshing) return;
         setRefreshing(true);
         try {
-            const res = await fetch(`${API}/notes/${slug}`);
-            const data = await res.json();
+            const res = await api.get(`/notes/${slug}`);
+            const data = res.data;
             const remoteContent = data.content || '';
             lastSavedContent.current = remoteContent;
             setContent(remoteContent);
@@ -230,12 +239,8 @@ export default function NotePage() {
     // ── Password Verify ───────────────────────
     const handleVerifyPassword = async () => {
         try {
-            const res = await fetch(`${API}/notes/${slug}/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password }),
-            });
-            const data = await res.json();
+            const res = await api.post(`/notes/${slug}/verify`, { password });
+            const data = res.data;
             if (data.unlocked) {
                 setIsUnlocked(true);
                 setPassword('');
@@ -253,23 +258,15 @@ export default function NotePage() {
             const body = { password: newPassword || null };
             if (isLocked) body.currentPassword = currentPassword;
 
-            const res = await fetch(`${API}/notes/${slug}/password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setIsLocked(data.isPasswordProtected);
-                setShowPassword(false);
-                setNewPassword('');
-                setCurrentPassword('');
-                showToast(data.isPasswordProtected ? 'Password set!' : 'Password removed!');
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch {
-            showToast('Failed to set password', 'error');
+            const res = await api.post(`/notes/${slug}/password`, body);
+            const data = res.data;
+            setIsLocked(data.isPasswordProtected);
+            setShowPassword(false);
+            setNewPassword('');
+            setCurrentPassword('');
+            showToast(data.isPasswordProtected ? 'Password set!' : 'Password removed!');
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Failed to set password', 'error');
         }
     };
 
@@ -277,29 +274,21 @@ export default function NotePage() {
     const handleMigrate = async () => {
         if (!newSlug.trim()) return;
         try {
-            const res = await fetch(`${API}/notes/${slug}/migrate`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newSlug: newSlug.trim() }),
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast('URL changed!');
-                router.push(`/${data.newSlug}`);
-                setShowMigrate(false);
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch {
-            showToast('Failed to migrate', 'error');
+            const res = await api.put(`/notes/${slug}/migrate`, { newSlug: newSlug.trim() });
+            const data = res.data;
+            showToast('URL changed!');
+            router.push(`/note?id=${data.newSlug}`);
+            setShowMigrate(false);
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Failed to migrate', 'error');
         }
     };
 
     // ── Version History ───────────────────────
     const loadVersions = async () => {
         try {
-            const res = await fetch(`${API}/notes/${slug}/versions`);
-            const data = await res.json();
+            const res = await api.get(`/notes/${slug}/versions`);
+            const data = res.data;
             setVersions(data.versions || []);
             setShowVersions(true);
         } catch {
@@ -327,6 +316,21 @@ export default function NotePage() {
         return (
             <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                 <p className="text-muted">Loading note...</p>
+            </div>
+        );
+    }
+
+    // ── Error View ────────────────────────────
+    if (error) {
+        return (
+            <div className="container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                <div style={{ marginBottom: '2rem' }}>
+                    <h3 style={{ color: 'var(--error-color, #dc3545)', marginBottom: '1rem' }}>⚠️ Error</h3>
+                    <p className="text-muted">{error}</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => router.push('/')}>
+                    Go back home
+                </button>
             </div>
         );
     }

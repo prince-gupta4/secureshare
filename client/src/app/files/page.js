@@ -4,7 +4,8 @@ import { useState, useRef } from 'react';
 import { nanoid } from 'nanoid';
 import { QRCodeSVG } from 'qrcode.react';
 
-const API = '/api';
+import api from '@/utils/api';
+
 
 function formatSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -89,20 +90,14 @@ export default function FilesPage() {
             formData.append('slug', slug.trim() || nanoid(8));
             formData.append('lifespan', lifespan);
 
-            const res = await fetch(`${API}/files/upload`, { method: 'POST', body: formData });
-            const data = await res.json();
+            const res = await api.post('/files/upload', formData);
 
-            if (res.ok) {
-                setProgress(100);
-                setResult(data);
-                setFiles([]);
-                setSlug('');
-            } else {
-                showToast(data.error || 'Upload failed', 'error');
-                setProgress(0);
-            }
+            setProgress(100);
+            setResult(res.data);
+            setFiles([]);
+            setSlug('');
         } catch (err) {
-            showToast('Upload failed: ' + err.message, 'error');
+            showToast(err.response?.data?.error || 'Upload failed: ' + err.message, 'error');
             setProgress(0);
         } finally {
             setUploading(false);
@@ -110,7 +105,7 @@ export default function FilesPage() {
     };
 
     const shareUrl = result
-        ? `${typeof window !== 'undefined' ? window.location.origin : ''}/files/${result.slug}`
+        ? `${typeof window !== 'undefined' ? window.location.origin : ''}/file?id=${result.slug}`
         : '';
 
     return (

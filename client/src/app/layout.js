@@ -12,7 +12,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.svg" />
         {/* Apply saved theme BEFORE React hydrates — prevents dark-mode flash */}
         <script dangerouslySetInnerHTML={{
           __html: `

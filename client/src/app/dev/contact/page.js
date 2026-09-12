@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useDev } from '@/components/DevAuth';
 import { devAuthHeaders } from '@/components/DevAuth';
 
-const API = '/api';
+import api from '@/utils/api';
 const PAGE_SIZE = 10;
 
 function fmtTime(iso) {
@@ -29,14 +29,10 @@ export default function DevContactPage() {
             params.set('limit', String(PAGE_SIZE));
             params.set('offset', String(offset));
 
-            const res = await fetch(`${API}/dev/contacts?${params}`, {
+            const res = await api.get(`/dev/contacts?${params}`, {
                 headers: devAuthHeaders(devToken),
             });
-            if (!res.ok) {
-                setError('Failed to load contacts (unauthorized or server error)');
-                return;
-            }
-            const data = await res.json();
+            const data = res.data;
             setContacts(append ? [...contacts, ...data.contacts] : data.contacts);
             setTotal(data.total);
             setHasMore(data.hasMore);
@@ -63,8 +59,7 @@ export default function DevContactPage() {
     const handleDelete = async (id) => {
         if (!confirm('Delete this contact message?')) return;
         try {
-            await fetch(`${API}/dev/contacts/${id}`, {
-                method: 'DELETE',
+            await api.delete(`/dev/contacts/${id}`, {
                 headers: devAuthHeaders(devToken),
             });
             // Refresh current view

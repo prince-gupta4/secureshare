@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useDev } from '@/components/DevAuth';
 import { devAuthHeaders } from '@/components/DevAuth';
 
-const API = '/api';
+import api from '@/utils/api';
 
 function formatBytes(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -58,14 +58,10 @@ export default function DevLogPage() {
             if (debouncedRoute) params.set('route', debouncedRoute);
             if (debouncedSearch) params.set('search', debouncedSearch);
 
-            const res = await fetch(`${API}/dev/logs?${params}`, {
+            const res = await api.get(`/dev/logs?${params}`, {
                 headers: devAuthHeaders(devToken),
             });
-            if (!res.ok) {
-                setError('Failed to load logs (unauthorized or server error)');
-                return;
-            }
-            const data = await res.json();
+            const data = res.data;
             setLogs(data.logs || []);
             setTotal(data.total || 0);
             setLogFile(data.logFile || '');
@@ -83,8 +79,7 @@ export default function DevLogPage() {
     const handleClear = async () => {
         if (!confirm('Delete all log entries?')) return;
         try {
-            await fetch(`${API}/dev/logs`, {
-                method: 'DELETE',
+            await api.delete('/dev/logs', {
                 headers: devAuthHeaders(devToken),
             });
             setLogs([]);
