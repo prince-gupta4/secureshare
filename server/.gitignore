@@ -1,0 +1,33 @@
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Environment & Secrets ─────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Database & Logs ───────────────────────────────────────────
+*.log
+logs/
+server/logs/
+
+# ── Uploads & Runtime Data ────────────────────────────────────
+uploads/
+devtoken.txt
+tmp/
+temp/
+
+# ── IDE / OS ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# ── Debug ─────────────────────────────────────────────────────
+*.log
+debug.log*
