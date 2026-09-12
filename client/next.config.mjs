@@ -1,13 +1,15 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  allowedDevOrigins: ['10.34.167.166'],
+  // Removed the invalid allowedDevOrigins option to prevent build crashes
 
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || 'https://secureshare-fsuk.onrender.com';
+
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.BACKEND_URL}/api/:path*`,
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
