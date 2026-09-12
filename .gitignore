@@ -49,10 +49,8 @@ logs/
 server/logs/
 
 # ── Uploads & Runtime Data ────────────────────────────────────
-server/uploads/
 server/devtoken.txt
 public/uploads/
-uploads/
 tmp/
 temp/
 *.tmp
