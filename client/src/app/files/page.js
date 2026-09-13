@@ -90,7 +90,14 @@ export default function FilesPage() {
             formData.append('slug', slug.trim() || nanoid(8));
             formData.append('lifespan', lifespan);
 
-            const res = await api.post('/files/upload', formData);
+            const res = await api.post('/files/upload', formData, {
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setProgress(70 + Math.floor(percentCompleted * 0.28));
+                    }
+                }
+            });
 
             setProgress(100);
             setResult(res.data);
@@ -171,6 +178,7 @@ export default function FilesPage() {
                     {/* Dropzone */}
                     <div
                         className={`dropzone ${dragActive ? 'active' : ''}`}
+                        style={uploading ? { opacity: 0.6, pointerEvents: 'none' } : {}}
                         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                         onDragLeave={() => setDragActive(false)}
                         onDrop={handleDrop}
@@ -198,7 +206,9 @@ export default function FilesPage() {
                                     <li key={i} className="file-item">
                                         <span className="file-item-name">{f.name}</span>
                                         <span className="file-item-size">{formatSize(f.size)}</span>
-                                        <button className="file-item-remove" onClick={() => removeFile(i)}>✕</button>
+                                        {!uploading && (
+                                            <button className="file-item-remove" onClick={() => removeFile(i)}>✕</button>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
@@ -217,11 +227,12 @@ export default function FilesPage() {
                                 placeholder="my-file-link"
                                 value={slug}
                                 onChange={(e) => setSlug(e.target.value)}
+                                disabled={uploading}
                             />
                         </div>
                         <div style={{ flex: 1, minWidth: '180px' }}>
                             <label>Lifespan</label>
-                            <select className="select" value={lifespan} onChange={(e) => setLifespan(e.target.value)}>
+                            <select className="select" value={lifespan} onChange={(e) => setLifespan(e.target.value)} disabled={uploading}>
                                 <option value="1">1 Hour</option>
                                 <option value="24">24 Hours</option>
                                 <option value="168">7 Days (Default)</option>
@@ -231,8 +242,22 @@ export default function FilesPage() {
 
                     {/* Progress */}
                     {uploading && (
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+                        <div className="mt-3">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
+                                <span style={{ color: 'var(--primary)', fontWeight: 500 }}>
+                                    {progress < 70 ? '⏳ Preparing files...' : progress < 100 ? '📤 Uploading...' : '✅ Finishing up...'}
+                                </span>
+                                <span className="text-muted">{progress}%</span>
+                            </div>
+                            <div className="progress-bar">
+                                <div
+                                    className="progress-bar-fill"
+                                    style={{
+                                        width: `${progress}%`,
+                                        transition: 'width 0.3s ease'
+                                    }}
+                                />
+                            </div>
                         </div>
                     )}
 
@@ -242,7 +267,9 @@ export default function FilesPage() {
                         onClick={handleUpload}
                         disabled={files.length === 0 || uploading}
                     >
-                        {uploading ? '⏳ Uploading...' : `📤 Upload${files.length > 1 ? ` & Zip (${files.length} files)` : ''}`}
+                        {uploading
+                            ? (progress < 70 ? 'Zipping Files...' : progress < 100 ? 'Uploading to Server...' : 'Processing...')
+                            : `📤 Upload${files.length > 1 ? ` & Zip (${files.length} files)` : ''}`}
                     </button>
                 </div>
             )}
