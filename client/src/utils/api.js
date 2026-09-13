@@ -38,8 +38,8 @@ api.interceptors.request.use(
 // Response Interceptor: Clean data unpacking and global error handling
 api.interceptors.response.use(
     (response) => {
-        // Automatically unpack Axios response wrapper so you get direct data in your components
-        return response.data;
+        // Return full response instead of response.data since the rest of the app expects res.data
+        return response;
     },
     (error) => {
         // Normalise error tracking
