@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { nanoid } from 'nanoid';
 import { useTheme } from '@/components/ThemeProvider';
@@ -27,8 +27,8 @@ export default function NotePage() {
 }
 
 function NoteContent() {
-    const searchParams = useSearchParams();
-    const slug = searchParams.get('id');
+    const params = useParams();
+    const slug = params.slug;
     const router = useRouter();
     const { theme } = useTheme();
     const editorRef = useRef(null);
@@ -277,7 +277,7 @@ function NoteContent() {
             const res = await api.put(`/notes/${slug}/migrate`, { newSlug: newSlug.trim() });
             const data = res.data;
             showToast('URL changed!');
-            router.push(`/note?id=${data.newSlug}`);
+            router.push(`/${data.newSlug}`);
             setShowMigrate(false);
         } catch (err) {
             showToast(err.response?.data?.error || 'Failed to migrate', 'error');

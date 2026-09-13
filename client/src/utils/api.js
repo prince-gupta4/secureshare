@@ -14,8 +14,20 @@ const api = axios.create({
 // Request Interceptor: Perfect place to automatically inject Auth tokens
 api.interceptors.request.use(
     (config) => {
-        // Example: const token = localStorage.getItem('token');
-        // if (token) config.headers.Authorization = `Bearer ${token}`;
+        if (typeof window !== 'undefined') {
+            let token = null;
+            const match = document.cookie.match(new RegExp('(^| )securestore-dev-token=([^;]+)'));
+            if (match) token = match[2];
+            else token = localStorage.getItem('securestore-dev-token');
+
+            if (token) config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        // Remove Content-Type if sending FormData so Axios can set the boundary automatically
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+
         return config;
     },
     (error) => {

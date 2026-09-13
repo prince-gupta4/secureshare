@@ -10,7 +10,7 @@ export default function HomePage() {
 
   const createNewNote = () => {
     const slug = nanoid(6);
-    router.push(`/note?id=${slug}`);
+    router.push(`/${slug}`);
   };
 
   return (
