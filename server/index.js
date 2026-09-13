@@ -15,6 +15,10 @@ const { requestLogger } = require('./middleware/logger');
 const { cleanupExpiredFiles } = require('./utils/cleanup');
 
 const app = express();
+
+// Trust the first proxy so express-rate-limit accurately reads the client's IP instead of the Render load balancer's IP
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/securestore';
 
