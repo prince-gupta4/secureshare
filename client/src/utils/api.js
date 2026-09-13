@@ -4,7 +4,7 @@ import axios from 'axios';
 const api = axios.create({
     // NEXT.JS CLIENT REQUIRES "NEXT_PUBLIC_" PREFIX TO READ ENV VARS!
     baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://secureshare-fsuk.onrender.com/api',
-    timeout: 120000, // 120-second timeout avoids hanging requests
+    timeout: 240000, // 240-second timeout avoids hanging requests
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
