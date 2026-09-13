@@ -609,6 +609,8 @@ label {
 .download-card h2 {
   margin-bottom: 0.5rem;
   font-size: 1.4rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .download-meta {
