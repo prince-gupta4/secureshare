@@ -54,14 +54,22 @@ app.use('/api/dev', devRoutes);
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.get('/', (_req, res) => res.json({ status: 'Looks Good' }));
 
+
 // ── Scheduled Cleanup ──────────────────────────────────────
-// Run every 15 minutes: delete expired files from local disk, Cloudinary, and DB.
-cron.schedule('*/15 * * * *', async () => {
+// Run every 13 minutes: delete expired files from local disk, Cloudinary, and DB.
+// Run every 13 minutes: ping the health endpoint to prevent the Render free tier from sleeping
+cron.schedule('*/13 * * * *', async () => {
   try {
     const result = await cleanupExpiredFiles();
     console.log(`✓ Cleanup run: ${result.deleted} expired file(s) removed`);
+
+    const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+    const res = await fetch(`${backendUrl}/api/health`);
+    if (res.ok) {
+      console.log('✓ Self-pinged to keep the free tier awake');
+    }
   } catch (err) {
-    console.error('Cleanup job error:', err.message);
+    console.error('Cron(Cleanup & Spin) Error:', err.message);
   }
 });
 
